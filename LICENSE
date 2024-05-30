@@ -1,21 +1,42 @@
-MIT License
+// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.0;
 
-Copyright (c) 2024 edgardojr09
+import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
+contract NabisToken is ERC20 {
+    address public owner;
+    mapping(address => uint256) public lockTime;
 
-The above copyright notice and this permission notice shall be included in all
-copies or substantial portions of the Software.
+    constructor() ERC20("Nabis Token", "NTK") {
+        owner = msg.sender;
+    }
 
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-SOFTWARE.
+    modifier onlyOwner() {
+        require(msg.sender == owner, "Only owner can call this function");
+        _;
+    }
+
+    function setLockTime(address account, uint256 time) public onlyOwner {
+        lockTime[account] = time;
+    }
+
+    function mint(address account, uint256 amount) public onlyOwner {
+        _mint(account, amount);
+    }
+
+    function burn(uint256 amount) public {
+        require(balanceOf(msg.sender) >= amount, "Insufficient balance to burn");
+        _burn(msg.sender, amount);
+    }
+
+    function transfer(address recipient, uint256 amount) public override returns (bool) {
+        require(block.timestamp >= lockTime[msg.sender], "Tokens are locked");
+        return super.transfer(recipient, amount);
+    }
+
+    function transferFrom(address sender, address recipient, uint256 amount) public override returns (bool) {
+        require(block.timestamp >= lockTime[sender], "Tokens are locked");
+        return super.transferFrom(sender, recipient, amount);
+    }
+}
+
